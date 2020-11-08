@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -71,9 +71,9 @@ namespace scrabblerobot
             //TO-DO: switch properly between p1 and p2 between turns
             
             //I need to evaluate the letter scores for each next
-            int k = 0;
+            int k = 7;
             foreach(char a in arrangements[0]){
-                board[7,7+k] = a;
+                board[7,k] = a;
                 k++;
                 p2 = p2.Remove(p2.IndexOf(a),1);
             }
@@ -104,9 +104,9 @@ namespace scrabblerobot
             //now for the Regex magic
             var capture = new Regex("[A-Z]? ?([A-Z ]*[A-Z]+[A-Z ]*) ?[A-Z]?");
             var boardmatches = new List<string>();
-            foreach(string focus in rows){
+            foreach(string row in rows){
                 try{
-                string match = capture.Matches(focus)[0].Groups[0].Value; //will throw an error on this
+                string match = capture.Matches(row)[0].Groups[0].Value; //will throw an error on this
                 Console.WriteLine(match.Replace(" ","."));
                 boardmatches.Add(match.Replace(" ",".?"));
                 }catch{}
@@ -115,9 +115,9 @@ namespace scrabblerobot
             //I could speed this up by regex-ing each dictionary entry? 
             //But I need to speedtest that
             foreach(string pattern in boardmatches){
-                var longwords = longestwords(p2+pattern.Replace(".?",""),ref words);
+                var longwords = longestwords(p2+pattern.Replace(".?",""),ref words); //brainstorms dictionary words with those letters
                 foreach(string word in longwords){
-                    if(Regex.IsMatch(word,pattern)){
+                    if(Regex.IsMatch(word,pattern)){ //bias towards the top
                         arrangements.Add(word);
                     }
                 }
@@ -125,28 +125,48 @@ namespace scrabblerobot
                 //go back to the dictionary at this point to search by letter combinations?
             }
             arrangements = arrangements.OrderBy(x=>-x.Length).ToList<string>();
+
+
+
+            arrangements.Clear();
+            arrangements.Add("BRACKET");
+            //for debugging
+
+
+
             Console.WriteLine(arrangements[0]);
             k = 0;
-            var rownum = -1;
-            var colnum = -1;
+            int rownum = 0, colnum = 0;
             foreach(string row in rows){
-                if(boardmatches.Contains(row.Replace(" ",".?"))){
-                    if(Regex.IsMatch(arrangements[0],row.Replace(" ",".?"))){
+                try{
+                //var pattern3 = Regex.Replace(row, "^ *([A-Z]+[A-Z ]*[A-Z]+) *","($1)").Replace(" ", ".");
+                var pattern3 = Regex.Replace(row, "^ *", "");
+                var offset2 = row.Length-pattern3.Length;
+                pattern3 = Regex.Replace(pattern3, " *$", "").Replace(" ",".");
+                if(pattern3.Length==0){throw new Exception();}
+                Console.WriteLine("regex: " + pattern3);
+                if(Regex.IsMatch(arrangements[0], pattern3)){
+                    var m = Regex.Match(arrangements[0], pattern3);
+                    var offset = m.Index;
                     rownum = k;
-                    colnum = row.IndexOf(Regex.Match(row,"[A-Z]").Value)-arrangements[0].IndexOf(Regex.Match(row,"[A-Z]").Value);
-                    Console.WriteLine(rownum+", "+colnum+"\ncoordinates for debugging");                
+                    colnum = offset2-offset;
+                    //var t = v.Index;
+                    Console.WriteLine(rownum+", "+colnum); 
                 }
-                }
+                }catch{}
                 k++;
             }
+            //change "arrangements" to "dicwords" for the lulz
+            
+            int k2 = colnum; //first column
+            foreach(char a in arrangements[0]){
+                board[k2, rownum] = a;
+                k2++;
+            }
+            print();
 
-
+            // are my rows and columns mixed up???
             Console.WriteLine("Done.");
-
-            //----------------------------------
-            //--------END OF CODE---------------
-            //----------------------------------
-
         }
         static void print(){
             for(int j = 0;j<15;j++){
